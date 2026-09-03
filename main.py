@@ -1,13 +1,14 @@
 import os
 import numpy as np
-import tf_keras as keras
+import tensorflow as tf
+import keras
 from io import BytesIO
 from PIL import Image
 from flask import Flask, request, jsonify
 
 app = Flask(__name__)
 
-# 1. Load model
+# Load model using Keras 3
 model = keras.models.load_model('cotton_disease_model.keras')
 
 class_names = [
