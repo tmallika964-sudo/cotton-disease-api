@@ -1,18 +1,17 @@
 import os
 import numpy as np
-import keras
+import onnxruntime as ort
 from io import BytesIO
 from PIL import Image
 from flask import Flask, request, jsonify
 
 app = Flask(__name__)
 
-# Load model structure and weights separately
-with open('model_config.json', 'r') as f:
-    model_json = f.read()
+# Load ONNX model into memory
+session = ort.InferenceSession('cotton_disease_model.onnx')
+input_name = session.get_inputs()[0].name
+output_name = session.get_outputs()[0].name
 
-model = keras.models.model_from_json(model_json)
-model.load_weights('model_weights.weights.h5')
 class_names = [
     'Bacterial Blight',
     'Curl Virus',
@@ -24,22 +23,19 @@ class_names = [
 @app.route('/predict', methods=['POST'])
 def predict():
     try:
-        # Check if an image file was uploaded
         if 'image' not in request.files:
             return jsonify({'error': 'No image file provided in request'}), 400
 
         file = request.files['image']
         
-        # Read the raw image bytes directly from memory
+        # Preprocess image
         img = Image.open(BytesIO(file.read())).convert('RGB')
         img = img.resize((224, 224))
-        
-        # Preprocess
-        img_array = np.array(img) / 255.0
+        img_array = np.array(img, dtype=np.float32) / 255.0
         img_batch = np.expand_dims(img_array, axis=0)
 
-        # Predict
-        predictions = model.predict(img_batch, verbose=0)[0]
+        # Predict via ONNX Engine
+        predictions = session.run([output_name], {input_name: img_batch})[0][0]
         best_index = np.argmax(predictions)
         
         return jsonify({
