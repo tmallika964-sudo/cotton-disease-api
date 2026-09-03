@@ -8,7 +8,7 @@ from flask import Flask, request, jsonify
 app = Flask(__name__)
 
 # 1. Load model
-model = tf.keras.models.load_model('cotton_disease_model.keras')
+model = keras.models.load_model('cotton_disease_model.keras')
 
 class_names = [
     'Bacterial Blight',
