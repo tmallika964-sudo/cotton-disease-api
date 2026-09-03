@@ -7,8 +7,12 @@ from flask import Flask, request, jsonify
 
 app = Flask(__name__)
 
-# Load model using Keras 3
-model = keras.models.load_model('cotton_disease_model.h5')
+# Load model structure and weights separately
+with open('model_config.json', 'r') as f:
+    model_json = f.read()
+
+model = keras.models.model_from_json(model_json)
+model.load_weights('model_weights.weights.h5')
 class_names = [
     'Bacterial Blight',
     'Curl Virus',
