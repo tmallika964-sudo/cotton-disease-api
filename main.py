@@ -1,6 +1,5 @@
 import os
 import numpy as np
-import tensorflow as tf
 import keras
 from io import BytesIO
 from PIL import Image
@@ -9,8 +8,7 @@ from flask import Flask, request, jsonify
 app = Flask(__name__)
 
 # Load model using Keras 3
-model = keras.models.load_model('cotton_disease_model.keras')
-
+model = keras.saving.load_model('cotton_disease_model.keras')
 class_names = [
     'Bacterial Blight',
     'Curl Virus',
