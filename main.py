@@ -29,24 +29,24 @@ def predict():
         file = request.files['image']
         
        # 1. Open image and resize
-img = Image.open(BytesIO(file.read())).convert('RGB')
-img = img.resize((224, 224))
-
-# 2. Convert to float32 and normalize
-img_array = np.array(img, dtype=np.float32) / 255.0
-
-# --- ADD THESE 2 CORRECTION LINES BELOW ---
-
-# Convert RGB to BGR (matches OpenCV if trained in Colab)
-img_array = img_array[:, :, ::-1] 
-
-# Transpose from (224, 224, 3) to (3, 224, 224) (matches PyTorch/ONNX NCHW format)
-img_array = np.transpose(img_array, (2, 0, 1)) 
-
-# ------------------------------------------
-
-# Add batch dimension -> becomes (1, 3, 224, 224)
-img_batch = np.expand_dims(img_array, axis=0)
+        img = Image.open(BytesIO(file.read())).convert('RGB')
+        img = img.resize((224, 224))
+        
+        # 2. Convert to float32 and normalize
+        img_array = np.array(img, dtype=np.float32) / 255.0
+        
+        # --- ADD THESE 2 CORRECTION LINES BELOW ---
+        
+        # Convert RGB to BGR (matches OpenCV if trained in Colab)
+        img_array = img_array[:, :, ::-1] 
+        
+        # Transpose from (224, 224, 3) to (3, 224, 224) (matches PyTorch/ONNX NCHW format)
+        img_array = np.transpose(img_array, (2, 0, 1)) 
+        
+        # ------------------------------------------
+        
+        # Add batch dimension -> becomes (1, 3, 224, 224)
+        img_batch = np.expand_dims(img_array, axis=0)
 
         # Predict via ONNX Engine
         predictions = session.run([output_name], {input_name: img_batch})[0][0]
