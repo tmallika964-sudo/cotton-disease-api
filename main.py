@@ -52,7 +52,7 @@ def predict():
         img = Image.open(BytesIO(file_bytes)).convert('RGB')
         img = img.resize((224, 224))
         
-        img_array = (np.array(img, dtype=np.float32) / 127.5) - 1.0
+        img_array = np.array(img, dtype=np.float32) / 255.0
         print(f"DEBUG - Pixel sample: {img_array[0, 0, :]}", flush=True)
 
         img_batch = np.expand_dims(img_array, axis=0)
