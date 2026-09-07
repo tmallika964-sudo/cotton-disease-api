@@ -46,14 +46,19 @@ def predict():
         if not file_bytes:
             return jsonify({'error': "No file uploaded"}), 400
 
-     # 1. Open image and resize
+    # Read file bytes
+        file_bytes = file.read()
+        print(f"DEBUG - Received file size: {len(file_bytes)} bytes", flush=True)
+
+        # Open and convert image
         img = Image.open(BytesIO(file_bytes)).convert('RGB')
         img = img.resize((224, 224))
         
-        # 2. Convert to float32 and scale to [-1.0, 1.0] (TensorFlow / MobileNet standard)
         img_array = (np.array(img, dtype=np.float32) / 127.5) - 1.0
         
-        # 3. Add batch dimension -> (1, 224, 224, 3)
+        # PRINT FIRST 5 PIXELS TO LOGS
+        print(f"DEBUG - Pixel sample: {img_array[0, 0, :]}", flush=True)
+
         img_batch = np.expand_dims(img_array, axis=0)
         # Predict via ONNX Engine
         predictions = session.run([output_name], {input_name: img_batch})[0][0]
