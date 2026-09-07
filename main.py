@@ -50,9 +50,14 @@ def predict():
         img = Image.open(BytesIO(file_bytes)).convert('RGB')
         img = img.resize((224, 224))
         
-        # 4. Convert to float32 and normalize
+        # 4. Convert to float32 and scale to [0, 1]
         img_array = np.array(img, dtype=np.float32) / 255.0
-
+        
+        # 5. Apply ImageNet Mean and Std Normalization
+        mean = np.array([0.485, 0.456, 0.406], dtype=np.float32)
+        std = np.array([0.229, 0.224, 0.225], dtype=np.float32)
+        img_array = (img_array - mean) / std
+        
         # Add batch dimension -> (1, 224, 224, 3)
         img_batch = np.expand_dims(img_array, axis=0)
         # Predict via ONNX Engine
