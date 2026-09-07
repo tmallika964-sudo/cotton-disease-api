@@ -1,12 +1,16 @@
 import os
+import io
+import base64
 import numpy as np
 import onnxruntime as ort
 from io import BytesIO
 from PIL import Image
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+
 app = Flask(__name__)
 CORS(app)
+
 # Load ONNX model into memory
 session = ort.InferenceSession('cotton_disease_model.onnx')
 input_name = session.get_inputs()[0].name
@@ -23,17 +27,30 @@ class_names = [
 @app.route('/predict', methods=['POST'])
 def predict():
     try:
-        # Check for both 'image' AND 'file' keys so it never crashes
+        file_bytes = None
+
+        # 1. Check for standard multipart file upload ('image' or 'file' key)
         file = request.files.get('image') or request.files.get('file')
-        
-        if not file:
+        if file:
+            file_bytes = file.read()
+
+        # 2. Fallback: Check for JSON / base64 payload if no file stream was attached
+        if not file_bytes:
+            data = request.get_json(silent=True) or {}
+            image_data = data.get('image') or data.get('file')
+            if image_data and isinstance(image_data, str):
+                if ',' in image_data:
+                    image_data = image_data.split(',')[1]
+                file_bytes = base64.b64decode(image_data)
+
+        if not file_bytes:
             return jsonify({'error': "No file uploaded"}), 400
 
-        # 1. Open image and resize
-        img = Image.open(BytesIO(file.read())).convert('RGB')
+        # 3. Open image and resize
+        img = Image.open(BytesIO(file_bytes)).convert('RGB')
         img = img.resize((224, 224))
         
-        # 2. Convert to float32 and normalize
+        # 4. Convert to float32 and normalize
         img_array = np.array(img, dtype=np.float32) / 255.0
         
         # Convert RGB to BGR
@@ -47,7 +64,7 @@ def predict():
 
         # Predict via ONNX Engine
         predictions = session.run([output_name], {input_name: img_batch})[0][0]
-        best_index = np.argmax(predictions)
+        best_index = int(np.argmax(predictions))
         
         return jsonify({
             'class': class_names[best_index],
