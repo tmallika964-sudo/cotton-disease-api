@@ -23,29 +23,26 @@ class_names = [
 @app.route('/predict', methods=['POST'])
 def predict():
     try:
-        if 'image' not in request.files:
-            return jsonify({'error': 'No image file provided in request'}), 400
-
-        file = request.files['image']
+        # Check for both 'image' AND 'file' keys so it never crashes
+        file = request.files.get('image') or request.files.get('file')
         
-       # 1. Open image and resize
+        if not file:
+            return jsonify({'error': "No file uploaded"}), 400
+
+        # 1. Open image and resize
         img = Image.open(BytesIO(file.read())).convert('RGB')
         img = img.resize((224, 224))
         
         # 2. Convert to float32 and normalize
         img_array = np.array(img, dtype=np.float32) / 255.0
         
-        # --- ADD THESE 2 CORRECTION LINES BELOW ---
-        
-        # Convert RGB to BGR (matches OpenCV if trained in Colab)
+        # Convert RGB to BGR
         img_array = img_array[:, :, ::-1] 
         
-        # Transpose from (224, 224, 3) to (3, 224, 224) (matches PyTorch/ONNX NCHW format)
+        # Transpose from (224, 224, 3) to (3, 224, 224)
         img_array = np.transpose(img_array, (2, 0, 1)) 
         
-        # ------------------------------------------
-        
-        # Add batch dimension -> becomes (1, 3, 224, 224)
+        # Add batch dimension -> (1, 3, 224, 224)
         img_batch = np.expand_dims(img_array, axis=0)
 
         # Predict via ONNX Engine
