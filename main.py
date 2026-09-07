@@ -34,7 +34,7 @@ def predict():
         if file:
             file_bytes = file.read()
 
-        # 2. Fallback: Check for JSON / base64 payload if no file stream was attached
+        # 2. Fallback: Check for JSON / base64 payload
         if not file_bytes:
             data = request.get_json(silent=True) or {}
             image_data = data.get('image') or data.get('file')
@@ -46,32 +46,33 @@ def predict():
         if not file_bytes:
             return jsonify({'error': "No file uploaded"}), 400
 
-    # Read file bytes
-        file_bytes = file.read()
         print(f"DEBUG - Received file size: {len(file_bytes)} bytes", flush=True)
 
-        # Open and convert image
+        # 3. Open and preprocess image
         img = Image.open(BytesIO(file_bytes)).convert('RGB')
         img = img.resize((224, 224))
         
         img_array = (np.array(img, dtype=np.float32) / 127.5) - 1.0
-        
-        # PRINT FIRST 5 PIXELS TO LOGS
         print(f"DEBUG - Pixel sample: {img_array[0, 0, :]}", flush=True)
 
         img_batch = np.expand_dims(img_array, axis=0)
-        # Predict via ONNX Engine
+
+        # 4. Predict via ONNX Engine
         predictions = session.run([output_name], {input_name: img_batch})[0][0]
-        best_index = int(np.argmax(predictions))
         
+        # Calculate Softmax probabilities to prevent invalid confidence percentages
+        exp_preds = np.exp(predictions - np.max(predictions))
+        probs = exp_preds / np.sum(exp_preds)
+        
+        best_index = int(np.argmax(probs))
+        confidence_val = float(probs[best_index]) * 100
+
+        print(f"DEBUG - Probabilities: {probs}", flush=True)
+
         return jsonify({
             'class': class_names[best_index],
-            'confidence': f"{float(predictions[best_index]) * 100:.2f}%"
+            'confidence': f"{confidence_val:.2f}%"
         })
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-
-if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 8080))
-    app.run(host='0.0.0.0', port=port)
