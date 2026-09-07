@@ -4,9 +4,9 @@ import onnxruntime as ort
 from io import BytesIO
 from PIL import Image
 from flask import Flask, request, jsonify
-
+from flask_cors import CORS
 app = Flask(__name__)
-
+CORS(app)
 # Load ONNX model into memory
 session = ort.InferenceSession('cotton_disease_model.onnx')
 input_name = session.get_inputs()[0].name
