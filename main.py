@@ -52,9 +52,6 @@ def predict():
         
         # 4. Convert to float32 and normalize
         img_array = np.array(img, dtype=np.float32) / 255.0
-        
-       # Convert RGB to BGR
-        img_array = img_array[:, :, ::-1]
 
         # Add batch dimension -> (1, 224, 224, 3)
         img_batch = np.expand_dims(img_array, axis=0)
