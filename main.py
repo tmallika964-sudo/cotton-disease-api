@@ -48,15 +48,14 @@ def predict():
 
         print(f"DEBUG - Received file size: {len(file_bytes)} bytes", flush=True)
 
-        # 3. Open and preprocess image
+        # Open image and convert to RGB
         img = Image.open(BytesIO(file_bytes)).convert('RGB')
         img = img.resize((224, 224))
         
-        img_array = np.array(img, dtype=np.float32) / 255.0
-        print(f"DEBUG - Pixel sample: {img_array[0, 0, :]}", flush=True)
-
+        # Convert RGB to BGR array for OpenCV/ONNX pipelines
+        img_array = np.array(img, dtype=np.float32)[:, :, ::-1] / 255.0
+        
         img_batch = np.expand_dims(img_array, axis=0)
-
         # 4. Predict via ONNX Engine
         predictions = session.run([output_name], {input_name: img_batch})[0][0]
         
