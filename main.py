@@ -48,15 +48,18 @@ def predict():
 
         print(f"DEBUG - Received file size: {len(file_bytes)} bytes", flush=True)
 
-        # Resize to 224x224 and scale to [0, 1]
-        img = Image.open(BytesIO(file_bytes)).convert('RGB').resize((224, 224))
-        img_array = np.array(img, dtype=np.float32) / 255.0
+        # 1. Resize and keep RGB
+        img = Image.open(BytesIO(file_bytes)).convert('RGB')
+        img = img.resize((224, 224))
         
-        # Add batch dimension and transpose to NCHW shape (1, 3, 224, 224)
+        # 2. Standard Keras / AI Studio normalization [-1.0, 1.0]
+        img_array = (np.array(img, dtype=np.float32) / 127.5) - 1.0
+        
+        # 3. Add batch dimension -> Shape becomes (1, 224, 224, 3)
+        # DO NOT TRANSPOSE — Model expects (1, 224, 224, 3)
         img_batch = np.expand_dims(img_array, axis=0)
-        img_batch = np.transpose(img_batch, (0, 3, 1, 2))
 
-        # 4. Predict via ONNX Engine
+        # 4. Predict
         predictions = session.run([output_name], {input_name: img_batch})[0][0]
         
         # Calculate Softmax probabilities
