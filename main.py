@@ -48,18 +48,19 @@ def predict():
 
         print(f"DEBUG - Received file size: {len(file_bytes)} bytes", flush=True)
 
-        # Open image and convert to RGB
+        # 3. Image Preprocessing (Standard AI Studio / Keras RGB Format)
         img = Image.open(BytesIO(file_bytes)).convert('RGB')
         img = img.resize((224, 224))
         
-        # Convert RGB to BGR array for OpenCV/ONNX pipelines
-        img_array = np.array(img, dtype=np.float32)[:, :, ::-1] / 255.0
+        # Scale pixels to [-1.0, 1.0] in RGB order
+        img_array = (np.array(img, dtype=np.float32) / 127.5) - 1.0
         
         img_batch = np.expand_dims(img_array, axis=0)
+
         # 4. Predict via ONNX Engine
         predictions = session.run([output_name], {input_name: img_batch})[0][0]
         
-        # Calculate Softmax probabilities to prevent invalid confidence percentages
+        # Calculate Softmax probabilities
         exp_preds = np.exp(predictions - np.max(predictions))
         probs = exp_preds / np.sum(exp_preds)
         
